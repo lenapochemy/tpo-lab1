@@ -5,73 +5,112 @@ import java.util.*;
 public class DetectiveAgency {
     private final double skillImportance = 0.125;
 
-    public Detective chooseBestDetective(Crime crime, List<Detective> detectives){
+    public Detective chooseBestDetective(Crime crime, Set<Detective> detectives) {
+        if (detectives.isEmpty()) {
+            throw new IllegalArgumentException("Detectives list can't be empty");
+        }
         Map<Detective, Double> result = new HashMap<>();
-        for(Detective det : detectives){
+        for (Detective det : detectives) {
             result.put(det, calculateDetectiveQuality(det, crime));
         }
         return Collections.max(result.entrySet(), Map.Entry.comparingByValue()).getKey();
     }
 
-    public double calcComputerImportance(Crime crime){
-        switch (crime.getType()){
+    public double calcComputerImportance(Crime crime) {
+        switch (crime.getType()) {
             case THEFT -> {
-                return skillImportance * 2;
+                return skillImportance;
             }
             case FRAUD -> {
-                return skillImportance * 4;
+                return skillImportance * 2;
             }
             default -> {
-                return skillImportance / 1.5;
+                return skillImportance / 1.25;
             }
         }
     }
 
-    public double calcEmotionalStabilityImportance(Crime crime){
-        if (Objects.requireNonNull(crime.getType()) == CrimeType.MURDER) {
+    public double calcEmotionalStabilityImportance(Crime crime) {
+        if (crime.getType() == CrimeType.MURDER) {
             return skillImportance * 2;
         }
         return skillImportance;
     }
 
-    public double calc
-
-    
-    public Double calculateDetectiveQuality(Detective detective, Crime crime){
-
-//        double computerImportance = skillImportance;
-//        double emotionalStabilityImportance = skillImportance;
-        double psychologyImportance = skillImportance;
-        double communicationImportance = skillImportance * 2;
-        double analyticalImportance = skillImportance;
-        double logicalImportance = skillImportance;
-
-        switch (crime.getType()){
-            case MURDER -> {
-//                emotionalStabilityImportance *= 2;
-                psychologyImportance *= 3;
-                communicationImportance *= 2;
-            }
-            case FRAUD -> {
-//                computerImportance *= 4;
-                analyticalImportance *= 2;
-                logicalImportance *= 2;
-            }
-            case THEFT -> {
-//                computerImportance *= 2;
-                analyticalImportance *= 2;
-                logicalImportance *= 2;
-            }
-
+    public double calcLogicalThinkingImportance(Crime crime) {
+        if (crime.getType() == CrimeType.MURDER) {
+            return skillImportance;
+        } else {
+            return skillImportance * 2;
         }
-
-        return detective.getWorkExperience() + 0.1 * detective.getLuckyFactor() +
-                analyticalImportance * detective.getAnalyticalSkills() +
-                logicalImportance * detective.getLogicalThinking() +
-                calcEmotionalStabilityImportance(crime) * detective.getEmotionalStability() +
-                calcComputerImportance(crime) * detective.getTechnicalSkills() +
-                communicationImportance * detective.getCommunicationSkills() +
-                psychologyImportance * detective.getPsychologyKnowledge();
     }
 
+    public Double calculateDetectiveQuality(Detective detective, Crime crime) {
+        return 0.25 + detective.getWorkExperience() + detective.getLuckyFactor() +
+                calcLogicalThinkingImportance(crime) * detective.getLogicalThinking() +
+                calcEmotionalStabilityImportance(crime) * detective.getEmotionalStability() +
+                calcComputerImportance(crime) * detective.getTechnicalSkills();
+    }
+
+    public Suspect findCriminal(Crime crime) {
+        if (crime.getSuspectsCount() == 0) {
+            throw new IllegalArgumentException("There are no suspects in the case, it is impossible to find the criminal.");
+        }
+        Set<Suspect> suspects = crime.getSuspects();
+        if (crime.getSuspectsCount() == 1) {
+            Iterator<Suspect> iterator = suspects.iterator();
+            return iterator.next();
+        }
+
+        Map<Suspect, Double> result = new HashMap<>();
+        for (Suspect sus : suspects) {
+            result.put(sus, calculateCriminalProbability(sus, crime));
+        }
+        return Collections.max(result.entrySet(), Map.Entry.comparingByValue()).getKey();
+
+    }
+
+    public double calculateCriminalProbability(Suspect suspect, Crime crime) {
+        if (suspect.isAlibi()) {
+            return 0.01;
+        } else {
+            return calcMotive(suspect.isMotive()) + calcMoralNorms(crime.getType(), suspect.isMoralNorms()) *
+                    calcCriminalRecord(suspect.getCriminalRecordsNumber()) +
+                    calcAggressivenessImportance(crime.getType()) * suspect.getAggressiveness();
+        }
+    }
+
+    public int calcCriminalRecord(int suspectCriminalRecords) {
+        if (suspectCriminalRecords == 0) {
+            return 1;
+        } else {
+            return suspectCriminalRecords;
+        }
+    }
+
+    public int calcMotive(boolean suspectMotive) {
+        if (suspectMotive) {
+            return 2;
+        } else {
+            return 1;
+        }
+    }
+
+
+    public int calcAggressivenessImportance(CrimeType type) {
+        if (type == CrimeType.MURDER) {
+            return 3;
+        } else {
+            return 1;
+        }
+    }
+
+    public int calcMoralNorms(CrimeType type, boolean suspectMoralNorm) {
+        if (type == CrimeType.MURDER) {
+            return 1;
+        }
+        if (suspectMoralNorm) {
+            return 1;
+        } else return 3;
+    }
 }
